@@ -22,7 +22,7 @@ def assertAndGetField(line):
     """ check if line satisfies "name = value" pattern """
     m = re.match("\t?(?P<name>[a-z_]*)\ =\ [\"\']?(?P<value>[A-Za-z0-9_,]*)[\"\']?", line)
     assert m
-    return (m['name'], m['value'])
+    return m['name'], m['value']
 
 def parse_metainfo(description):
     """ parse .dmi description to metainfo """
@@ -55,10 +55,15 @@ def parse_metainfo(description):
             elif props_pair[0] in ["delay"]:
                 props[props_pair[0]] = [int(a) for a in props_pair[1].split(',')]
 
+        if state in states:
+            print("Warning! State '{}' duplicated".format(state))
+            num = 1
+            while state + str(num) in states:
+                num += 1
+            state += str(num)
         states[state] = props
 
     metainfo["states"] = states
-    print(metainfo)
     return metainfo
 
 def crop(im, width, height):
@@ -117,6 +122,7 @@ def dmi_parse(name):
     dmi_name = name.rsplit(".", 1)[0] # "mob.vasya.dmi" -> "mob.vasya"
 
     metainfo = parse_metainfo(im.info['Description'])
+
     parse_image(im, dmi_name, metainfo)
 
     # sort dict by keys
