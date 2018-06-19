@@ -1,5 +1,3 @@
-import sys
-
 import os
 import json
 import math
@@ -102,10 +100,3 @@ def dmi_compile(name):
     pngInfo = PngImagePlugin.PngInfo()
     pngInfo.add_text('Description', description)
     result_img.save("{}.dmi".format(name), "png", pnginfo=pngInfo)
-
-def main():
-    name = sys.argv[1]
-    dmi_compile(name)
-
-if __name__ == "__main__":
-    main()
