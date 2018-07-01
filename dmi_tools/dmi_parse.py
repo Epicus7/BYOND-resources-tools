@@ -106,7 +106,7 @@ def parse_image(im, res_path_full, metainfo):
             frames = props["frames"]
 
         for frame in range(frames):
-            for dir in range(dirs):
+            for direction in range(dirs):
                 if len(state) == 0:
                     filename = "default"
                 else:
@@ -115,7 +115,7 @@ def parse_image(im, res_path_full, metainfo):
                 if frames > 1:
                     filename += "_{}".format(frame)
                 if dirs > 1:
-                    filename += "_{}".format(dir2str[dir])
+                    filename += "_{}".format(dir2str[direction])
                 filename += ".png"
 
                 img = Image.new('RGBA', (height, width), '#FFFFFF00')

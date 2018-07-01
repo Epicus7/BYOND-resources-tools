@@ -48,7 +48,7 @@ def dmi_compile(name):
     with open('{}/metainfo.json'.format(name)) as f:
         metainfo = json.load(f)
 
-    # prepare nessesary information
+    # prepare necessary information
     description, numOfStates = metainfo2description(metainfo)
 
     spriteSheetWidthByTiles = math.ceil(math.sqrt(numOfStates))
@@ -76,7 +76,7 @@ def dmi_compile(name):
             frames = props["frames"]
 
         for frame in range(frames):
-            for dir in range(dirs):
+            for direction in range(dirs):
                 filename = state
                 if len(filename) == 0:
                     filename = "default"
@@ -84,7 +84,7 @@ def dmi_compile(name):
                 if frames > 1:
                     filename += "_{}".format(frame)
                 if dirs > 1:
-                    filename += "_{}".format(dir2str[dir])
+                    filename += "_{}".format(dir2str[direction])
                 filename += ".png"
 
                 state_img = Image.open("{}/{}".format(stateFolder, filename))
