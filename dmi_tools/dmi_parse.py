@@ -21,7 +21,7 @@ logger = logging.getLogger("dmi_tools")
 
 def assertAndGetField(line):
     """ check if line satisfies "name = value" pattern """
-    m = re.match("\t?(?P<name>[a-z_]*)\ =\ [\"\']?(?P<value>[A-Za-z0-9_,\-\+\ ><]*)[\"\']?", line)
+    m = re.match("\t?(?P<name>[a-z_]*) = [\"\']?(?P<value>[A-Za-z0-9_\- .,+()]*)[\"\']?", line)
     assert m
     return m['name'], m['value']
 
@@ -50,14 +50,14 @@ def parse_metainfo(description):
         if pair[0] in ["width", "height"]:
             metainfo[pair[0]] = int(pair[1])
         elif pair[0] == "state":
-            state = re.sub('[<>]', '', pair[1]).strip() # < and > shouldn't be in folder name
+            state = pair[1].strip()
             props = {}
             while dmi_info[0][0] == '\t':
                 props_pair = assertAndGetField(dmi_info.pop(0))
                 if props_pair[0] in ["dirs", "frames"]:
                     props[props_pair[0]] = int(props_pair[1])
                 elif props_pair[0] in ["delay"]:
-                    props[props_pair[0]] = [int(a) for a in props_pair[1].split(',')]
+                    props[props_pair[0]] = [float(a) for a in props_pair[1].split(',')]
 
             if state in states:
                 logger.warning("state '{}' duplicated".format(state))
