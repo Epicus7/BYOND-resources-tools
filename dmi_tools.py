@@ -44,12 +44,17 @@ def main():
                         os.makedirs(newPath)
                     copyfile(os.path.join(path, name + ext), os.path.join(newPath, name + ext))
                     logger.info("copied.")
+    elif command == "compile":
+        paths = [root_path, ]
+        for path in paths:
+            for item in os.listdir(path):
+                if item.startswith("[pdmi]"):
+                    relPath = os.path.relpath(path, root_path)
+                    name = item[6:]
 
-
-
-
-    # elif command == "compile":
-
+                    tools.dmi_compile((root_path, relPath, name), result_path)
+                else:
+                    paths.append(path + "\\" + item)
     else:
         raise Exception("Please, specify correct command by first argument: 'compile' or 'parse'!")
 

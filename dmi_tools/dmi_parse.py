@@ -104,6 +104,9 @@ def parse_image(im, res_path_full, metainfo):
             dirs = props["dirs"]
         if "frames" in props:
             frames = props["frames"]
+        if "delay" in props:
+            with open("{}/delay.json".format(stateFolder), "w") as output:
+                print(json.dumps({'delay': props["delay"]}, indent=4), file=output)
 
         for frame in range(frames):
             for direction in range(dirs):
@@ -118,7 +121,7 @@ def parse_image(im, res_path_full, metainfo):
                     filename += "_{}".format(dir2str[direction])
                 filename += ".png"
 
-                img = Image.new('RGBA', (height, width), '#FFFFFF00')
+                img = Image.new('RGBA', (width, height), '#FFFFFF00')
                 img.paste(im_iter.__next__())
                 img.save("{}/{}".format(stateFolder, filename))
 
