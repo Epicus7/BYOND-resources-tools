@@ -52,6 +52,11 @@ def main():
                     relPath = os.path.relpath(path, root_path)
                     name = item[6:]
 
+                    FORMAT = '%(levelname)s: [{}] %(message)s'.format(os.path.join(relPath, item))
+                    formatter = logging.Formatter(FORMAT)
+                    handler.setFormatter(formatter)
+
+                    logger.info("start compiling.")
                     tools.dmi_compile((root_path, relPath, name), result_path)
                 else:
                     paths.append(path + "\\" + item)

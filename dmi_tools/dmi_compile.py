@@ -18,6 +18,7 @@ dir2str = {
 }
 
 logger = logging.getLogger("dmi_tools")
+state = "" # crutch for logging
 
 def collectStateMetainfo(statefiles, statePath, framename = 'frame'):
     directions = 1
@@ -34,7 +35,7 @@ def collectStateMetainfo(statefiles, statePath, framename = 'frame'):
     for icon in statefiles:
         m = re.match("{}(_(?P<frame>\d+))?(_(?P<direction>\w+))?\.png".format(framename), icon)
         if not m:
-            raise Exception("Error: unknown file in pdmi state!")
+            raise Exception("unknown file!")
         if m['direction'] is not None:
             if m['direction'] in ["south", "north", "east", "west"]:
                 directions = max(directions, 4)
@@ -42,16 +43,19 @@ def collectStateMetainfo(statefiles, statePath, framename = 'frame'):
                 directions = 8
         else:
             if directions > 1:
-                raise Exception("Error: state without necessary direction!")
+                raise Exception("direction is missing!")
         if m['frame'] is not None:
             frames = max(frames, int(m['frame']) + 1)
 
     if frames != delays:
-        logger.warning("the quantity of delays ({}) and frames ({}) not match for state '{}'".format(delays, frames, statePath))
-        statemetainfo['delay'] = statemetainfo['delay'][:delays-frames]
+        if statemetainfo is None:
+            raise Exception("delay.json is missing!")
+        else:
+            logger.warning("the quantity of delays ({}) and frames ({}) not match for state {}!".format(delays, frames, state))
+            statemetainfo['delay'] = statemetainfo['delay'][:delays-frames]
 
     if len(statefiles) != directions * frames:
-        raise Exception("Error: incorrect states count!")
+        raise Exception("incorrect frames count!")
 
     result = {
         'dirs': directions,
@@ -72,7 +76,12 @@ def collectMetainfo(path):
         itempath = os.path.join(path, item)
         if os.path.isdir(itempath):
             statefiles = os.listdir(itempath)
-            result[item] = collectStateMetainfo(statefiles, itempath)
+            global state
+            state = item
+            try:
+                result[item] = collectStateMetainfo(statefiles, itempath)
+            except Exception as e:
+                logger.error("(state: {}) ".format(state) + str(e))
             items.remove(item)
     if len(items) > 0:
         result[""] = collectStateMetainfo(items, path, framename='default')
