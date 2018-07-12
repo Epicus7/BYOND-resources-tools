@@ -17,25 +17,45 @@ dir2str = {
 	7 : "northwest"
 }
 
+symsubs = {
+    '/': 'SLASH',
+    '\\':'BACKSLASH',
+    ':': 'COLON',
+    '<': 'LESS',
+    '>': 'GREATER',
+    '|': 'VERTICAL',
+    '?': 'QUESTION',
+    '*': 'ASTERISK'
+}
+symsubs = {"[@{}]".format(y):x for x,y in symsubs.items()} # prepare dict
+
 logger = logging.getLogger("dmi_tools")
 state = "" # crutch for logging
+
+def unfixStateName(state):
+    pattern = re.compile(r'\b(' + '|'.join(symsubs.keys()) + r')\b')
+    return pattern.sub(lambda x: symsubs[x.group()], state)
 
 def collectStateMetainfo(statefiles, statePath, framename = 'frame'):
     directions = 1
     frames = 1
     delays = 1
+    movement = False
 
     statemetainfo = None
-    if "delay.json" in statefiles:
+    if "metainfo.json" in statefiles:
         with open(os.path.join(statePath, "delay.json")) as f:
             statemetainfo = json.load(f)
-        statefiles.remove("delay.json")
-        delays = len(statemetainfo['delay'])
+        statefiles.remove("metainfo.json")
+        if 'delay' in statemetainfo:
+            delays = len(statemetainfo['delay'])
 
     for icon in statefiles:
-        m = re.match("{}(_(?P<frame>\d+))?(_(?P<direction>\w+))?\.png".format(framename), icon)
+        m = re.match("{}(?P<movement>_\[MOVEMENT\])(_(?P<frame>\d+))?(_(?P<direction>\w+))?\.png".format(framename), icon)
         if not m:
             raise Exception("unknown file!")
+        if m['movement'] is not None:
+            movement = True
         if m['direction'] is not None:
             if m['direction'] in ["south", "north", "east", "west"]:
                 directions = max(directions, 4)
@@ -61,7 +81,7 @@ def collectStateMetainfo(statefiles, statePath, framename = 'frame'):
         'dirs': directions,
         'frames': frames
     }
-    if frames > 1:
+    if statemetainfo is not None:
         result.update(statemetainfo)
 
     return result
@@ -77,7 +97,7 @@ def collectMetainfo(path):
         if os.path.isdir(itempath):
             statefiles = os.listdir(itempath)
             global state
-            state = item
+            state = unfixStateName(item)
             try:
                 result[item] = collectStateMetainfo(statefiles, itempath)
             except Exception as e:
@@ -192,4 +212,4 @@ def dmi_compile(pdmi_path, res_path):
     # save result (don't forget Description)
     pngInfo = PngImagePlugin.PngInfo()
     pngInfo.add_text('Description', description)
-    result_img.save(res_path_full, "png", pnginfo=pngInfo)
+    result_img.save(res_path_full, "png", pnginfo=pngInfo, optimize=True)

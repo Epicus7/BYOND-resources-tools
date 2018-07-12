@@ -1,2 +1,2 @@
 from dmi_compile import dmi_compile
-from dmi_parse import dmi_parse
+from dmi_parse import dmi_parse, dmi_getinfo

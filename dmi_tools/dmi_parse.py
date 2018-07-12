@@ -2,7 +2,7 @@ import os
 import re
 import json
 import logging
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 from PIL import Image
 
@@ -17,18 +17,38 @@ dir2str = {
 	7 : "northwest"
 }
 
+symsubs = {
+    '/': 'SLASH',
+    '\\':'BACKSLASH',
+    ':': 'COLON',
+    '<': 'LESS',
+    '>': 'GREATER',
+    '|': 'VERTICAL',
+    '?': 'QUESTION',
+    '*': 'ASTERISK'
+}
+
 logger = logging.getLogger("dmi_tools")
 
 def assertAndGetField(line):
     """ check if line satisfies "name = value" pattern """
-    m = re.match("\t?(?P<name>[a-z_]*) = [\"\']?(?P<value>[A-Za-z0-9_\- .,+()]*)[\"\']?", line)
+    m = re.match("\t?(?P<name>[a-z_]*) = (?P<quote>[\"\']?)(?P<value>.*)(?P=quote)", line)
     assert m
     return m['name'], m['value']
+
+def fixStateName(state):
+    fixedChars = list()
+    for ch in state:
+        if ch in symsubs:
+            fixedChars.append('[@{}]'.format(symsubs[ch]))  # ex: [@SLASH]
+        else:
+            fixedChars.append(ch)
+    return ''.join(fixedChars)
 
 def parse_metainfo(description):
     """ parse .dmi description to metainfo """
 
-    metainfo = {}
+    metainfo = defaultdict()
 
     # split Description into strings
     dmi_info = description.split('\n')
@@ -54,17 +74,25 @@ def parse_metainfo(description):
             props = {}
             while dmi_info[0][0] == '\t':
                 props_pair = assertAndGetField(dmi_info.pop(0))
-                if props_pair[0] in ["dirs", "frames"]:
-                    props[props_pair[0]] = int(props_pair[1])
-                elif props_pair[0] in ["delay"]:
+                if props_pair[0] in ["delay"]:
                     props[props_pair[0]] = [float(a) for a in props_pair[1].split(',')]
+                    continue
+                if props_pair[1].isdigit():
+                    props[props_pair[0]] = int(props_pair[1])
+                else:
+                    props[props_pair[0]] = props_pair[1]
+
+            state = fixStateName(state)
 
             if state in states:
-                logger.warning("state '{}' duplicated".format(state))
-                num = 1
-                while state + str(num) in states:
-                    num += 1
-                state += str(num) + "duplicate"
+                if 'movement' not in props or props['movement'] != 1:
+                    logger.warning("state '{}' duplicated".format(state))
+                    num = 1
+                    dupl_state = state
+                    while dupl_state in states:
+                        num += 1
+                        dupl_state = state + "_[DUPLICATED_{}]".format(num)
+                    state = dupl_state
             states[state] = props
         else:
             raise Exception("Error: unknown dmi Description attribute!")
@@ -99,14 +127,20 @@ def parse_image(im, res_path_full, metainfo):
 
         dirs = 1
         frames = 1
+        movement = False
 
-        if "dirs" in props:
-            dirs = props["dirs"]
-        if "frames" in props:
-            frames = props["frames"]
-        if "delay" in props:
-            with open("{}/delay.json".format(stateFolder), "w") as output:
-                print(json.dumps({'delay': props["delay"]}, indent=4), file=output)
+        local_metainfo = dict(props)
+
+        if "dirs" in local_metainfo:
+            dirs = local_metainfo.pop("dirs")
+        if "frames" in local_metainfo:
+            frames = local_metainfo.pop("frames")
+        if "movement" in local_metainfo:
+            movement = bool(local_metainfo.pop("movement"))
+
+        if len(local_metainfo) > 0:
+            with open("{}/metainfo.json".format(stateFolder), "w") as output:
+                print(json.dumps(local_metainfo, indent=4), file=output)
 
         for frame in range(frames):
             for direction in range(dirs):
@@ -115,6 +149,8 @@ def parse_image(im, res_path_full, metainfo):
                 else:
                     filename = "frame"
 
+                if movement:
+                    filename += "_[MOVEMENT]"
                 if frames > 1:
                     filename += "_{}".format(frame)
                 if dirs > 1:
@@ -148,3 +184,12 @@ def dmi_parse(dmi_path, res_path):
 
     with open("{}/metainfo.json".format(res_path_full), "w") as output:
         print(json.dumps(metainfo, indent=4), file=output)
+
+def dmi_getinfo(dmi_path):
+    im = Image.open(os.path.join(dmi_path))
+    metainfo = parse_metainfo(im.info['Description'])
+
+    with open("metainfo.json", "w") as output:
+        print(json.dumps(metainfo, indent=4), file=output)
+        print(im.info['Description'], file=output)
+
