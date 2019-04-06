@@ -44,14 +44,14 @@ def collectStateMetainfo(statefiles, statePath, framename = 'frame'):
 
     statemetainfo = None
     if "metainfo.json" in statefiles:
-        with open(os.path.join(statePath, "delay.json")) as f:
+        with open(os.path.join(statePath, "metainfo.json")) as f:
             statemetainfo = json.load(f)
         statefiles.remove("metainfo.json")
         if 'delay' in statemetainfo:
             delays = len(statemetainfo['delay'])
 
     for icon in statefiles:
-        m = re.match("{}(?P<movement>_\[MOVEMENT\])(_(?P<frame>\d+))?(_(?P<direction>\w+))?\.png".format(framename), icon)
+        m = re.match("{}(?P<movement>_\[MOVEMENT\])?(_(?P<frame>\d+))?(_(?P<direction>\w+))?\.png".format(framename), icon)
         if not m:
             raise Exception("unknown file!")
         if m['movement'] is not None:
